@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "next dev",
         "build": "next build",
-        "start": "next start",
+        "start": "dev /app.ts",
         "lint": "next lint"
     },
     "dependencies": {
