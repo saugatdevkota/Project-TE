@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { query } from '../db';
+import { v4 as uuidv4 } from 'uuid';
 
 export const getConversations = async (req: Request, res: Response) => {
     const { userId } = req.params;
@@ -53,13 +54,14 @@ export const getMessages = async (req: Request, res: Response) => {
 
 export const saveMessage = async (senderId: string, receiverId: string, text: string) => {
     try {
+        const mid = uuidv4();
         const result = await query(
-            `INSERT INTO messages (sender_id, receiver_id, text) 
-       VALUES ($1, $2, $3) 
+            `INSERT INTO messages (id, sender_id, receiver_id, text) 
+       VALUES ($1, $2, $3, $4) 
        RETURNING *`,
-            [senderId, receiverId, text]
+            [mid, senderId, receiverId, text]
         );
-        return result.rows[0];
+        return result.rows[0] || { id: mid, senderId, receiverId, text, timestamp: new Date().toISOString() };
     } catch (err) {
         console.error('Error saving message:', err);
         return null;

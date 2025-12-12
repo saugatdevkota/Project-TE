@@ -2,21 +2,49 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function SignupPage() {
     const router = useRouter();
-    const [role, setRole] = useState<'student' | 'tutor'>('student');
+    const searchParams = useSearchParams();
+    const initialRole = searchParams.get('role') === 'tutor' ? 'tutor' : 'student';
+
+    const [role, setRole] = useState<'student' | 'tutor'>(initialRole);
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // Mock signup
-        setTimeout(() => {
-            setLoading(false);
+
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const res = await fetch(`${API_URL}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password, role }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.message || 'Registration failed');
+                setLoading(false);
+                return;
+            }
+
+            // Save token
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+
             router.push('/dashboard');
-        }, 1000);
+        } catch (err) {
+            console.error(err);
+            alert('Something went wrong. Please check if the backend is running.');
+            setLoading(false);
+        }
     };
 
     return (
@@ -49,7 +77,9 @@ export default function SignupPage() {
                         <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
                         <input
                             type="text"
-                            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full px-4 py-3 rounded-lg border border-slate-300 text-slate-900 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                             placeholder="John Doe"
                             required
                         />
@@ -58,7 +88,9 @@ export default function SignupPage() {
                         <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
                         <input
                             type="email"
-                            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full px-4 py-3 rounded-lg border border-slate-300 text-slate-900 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                             placeholder="you@example.com"
                             required
                         />
@@ -67,7 +99,9 @@ export default function SignupPage() {
                         <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
                         <input
                             type="password"
-                            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full px-4 py-3 rounded-lg border border-slate-300 text-slate-900 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                             placeholder="••••••••"
                             required
                         />

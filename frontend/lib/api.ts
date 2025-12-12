@@ -1,23 +1,59 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
-    const token = localStorage.getItem('token');
-
-    const headers = {
+const getHeaders = () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
     };
-
-    const response = await fetch(`${API_URL}${endpoint}`, {
-        ...options,
-        headers,
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Something went wrong');
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
     }
+    return headers;
+};
 
-    return response.json();
-}
+export const api = {
+    get: async (endpoint: string) => {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        if (!res.ok) throw await res.json();
+        return res.json();
+    },
+
+    post: async (endpoint: string, body: any) => {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw await res.json();
+        return res.json();
+    },
+
+    put: async (endpoint: string, body: any) => {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw await res.json();
+        return res.json();
+    },
+
+    upload: async (endpoint: string, file: File) => {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch(`${API_URL}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        if (!res.ok) throw await res.json();
+        return res.json();
+    }
+};

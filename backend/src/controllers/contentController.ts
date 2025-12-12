@@ -1,18 +1,20 @@
 import { Request, Response } from 'express';
 import { query } from '../db';
+import { v4 as uuidv4 } from 'uuid';
 
 export const createContent = async (req: Request, res: Response) => {
     const { tutorId, title, description, type, price, fileUrl, visibility } = req.body;
 
     try {
+        const cid = uuidv4();
         const result = await query(
-            `INSERT INTO content_hub (tutor_id, title, description, type, price, file_url, visibility)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `INSERT INTO content_hub (id, tutor_id, title, description, type, price, file_url, visibility)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-            [tutorId, title, description, type, price, fileUrl, visibility]
+            [cid, tutorId, title, description, type, price, fileUrl, visibility]
         );
 
-        res.status(201).json(result.rows[0]);
+        res.status(201).json(result.rows[0] || { id: cid });
     } catch (err: any) {
         res.status(500).json({ message: 'Server error', error: err.message });
     }

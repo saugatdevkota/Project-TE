@@ -1,153 +1,102 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Send, MoreVertical, Phone, Video } from 'lucide-react';
-// import io from 'socket.io-client';
 
-// Mock data for UI
-const mockConversations = [
-    { id: 1, name: 'Sarah Smith', lastMessage: 'See you tomorrow!', time: '10:30 AM', unread: 2, avatar: 'bg-emerald-100 text-emerald-600' },
-    { id: 2, name: 'John Doe', lastMessage: 'Thanks for the lesson.', time: 'Yesterday', unread: 0, avatar: 'bg-indigo-100 text-indigo-600' },
-];
-
-const mockMessages = [
-    { id: 1, sender: 'them', text: 'Hi! I am interested in your calculus lessons.', time: '10:00 AM' },
-    { id: 2, sender: 'me', text: 'Hello! I would be happy to help. What specific topics are you struggling with?', time: '10:05 AM' },
-    { id: 3, sender: 'them', text: 'Mostly derivatives and integrals.', time: '10:10 AM' },
-    { id: 4, sender: 'me', text: 'Great, those are my specialties. Shall we book a trial?', time: '10:12 AM' },
-    { id: 5, sender: 'them', text: 'Yes, that sounds perfect!', time: '10:15 AM' },
-];
-
-export default function ChatPage() {
-    const [activeChat, setActiveChat] = useState<number | null>(1);
+export default function MessagesPage() {
+    const [selectedChat, setSelectedChat] = useState<any>(null);
     const [messageInput, setMessageInput] = useState('');
-    const [messages, setMessages] = useState(mockMessages);
+    const [messages, setMessages] = useState<any[]>([]);
 
-    // In real app:
-    // useEffect(() => {
-    //   const socket = io('http://localhost:5000');
-    //   socket.emit('join_chat', currentUserId);
-    //   socket.on('receive_message', (msg) => setMessages(prev => [...prev, msg]));
-    //   return () => socket.disconnect();
-    // }, []);
+    // Mock user for conversation list (in real app, fetch "my contacts" based on bookings)
+    const contacts = [
+        { id: 1, name: "Dr. Sarah Wilson", lastMessage: "See you tomorrow!", time: "10:30 AM" },
+        { id: 2, name: "Platform Support", lastMessage: "How can we help?", time: "Yesterday" }
+    ];
 
-    const handleSend = (e: React.FormEvent) => {
+    const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
         if (!messageInput.trim()) return;
 
-        setMessages([...messages, {
-            id: Date.now(),
-            sender: 'me',
-            text: messageInput,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }]);
+        // Optimistic update
+        setMessages([...messages, { id: Date.now(), text: messageInput, sender: 'me', time: 'Now' }]);
         setMessageInput('');
+
+        // In real app: POST /api/chat/send
     };
 
     return (
-        <div className="flex h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            {/* Sidebar */}
-            <div className="w-80 border-r border-slate-100 flex flex-col">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 h-[calc(100vh-140px)] flex overflow-hidden">
+            {/* Sidebar (Contacts) */}
+            <div className="w-1/3 border-r border-slate-100 bg-slate-50 flex flex-col">
                 <div className="p-4 border-b border-slate-100">
                     <h2 className="font-bold text-slate-900">Messages</h2>
                 </div>
                 <div className="flex-1 overflow-y-auto">
-                    {mockConversations.map((chat) => (
+                    {contacts.map(contact => (
                         <div
-                            key={chat.id}
-                            onClick={() => setActiveChat(chat.id)}
-                            className={`p-4 flex items-center gap-3 cursor-pointer transition-colors ${activeChat === chat.id ? 'bg-indigo-50' : 'hover:bg-slate-50'
-                                }`}
+                            key={contact.id}
+                            onClick={() => setSelectedChat(contact)}
+                            className={`p-4 hover:bg-white cursor-pointer transition-colors border-b border-slate-100/50 ${selectedChat?.id === contact.id ? 'bg-white border-l-4 border-l-primary' : ''}`}
                         >
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${chat.avatar}`}>
-                                {chat.name.charAt(0)}
+                            <div className="flex justify-between items-start mb-1">
+                                <h3 className="font-bold text-slate-900 text-sm">{contact.name}</h3>
+                                <span className="text-xs text-slate-400">{contact.time}</span>
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-baseline">
-                                    <h3 className="font-semibold text-slate-900 truncate">{chat.name}</h3>
-                                    <span className="text-xs text-slate-400">{chat.time}</span>
-                                </div>
-                                <p className="text-sm text-slate-500 truncate">{chat.lastMessage}</p>
-                            </div>
-                            {chat.unread > 0 && (
-                                <div className="w-5 h-5 bg-primary text-white rounded-full text-xs flex items-center justify-center font-bold">
-                                    {chat.unread}
-                                </div>
-                            )}
+                            <p className="text-sm text-slate-500 truncate">{contact.lastMessage}</p>
                         </div>
                     ))}
                 </div>
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 flex flex-col">
-                {/* Header */}
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold">
-                            S
+            <div className="w-2/3 flex flex-col bg-white">
+                {selectedChat ? (
+                    <>
+                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white z-10">
+                            <h3 className="font-bold text-slate-900">{selectedChat.name}</h3>
+                            <button className="text-slate-400 hover:text-primary">•••</button>
                         </div>
-                        <div>
-                            <h3 className="font-bold text-slate-900">Sarah Smith</h3>
-                            <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                                <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                                Online
-                            </span>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-400">
-                        <button className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-                            <Phone className="w-5 h-5" />
-                        </button>
-                        <button className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-                            <Video className="w-5 h-5" />
-                        </button>
-                        <button className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-                            <MoreVertical className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
 
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50">
-                    {messages.map((msg) => (
-                        <div
-                            key={msg.id}
-                            className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
-                        >
-                            <div
-                                className={`max-w-[70%] rounded-2xl px-4 py-3 ${msg.sender === 'me'
-                                        ? 'bg-primary text-white rounded-br-none'
-                                        : 'bg-white text-slate-900 border border-slate-100 rounded-bl-none'
-                                    }`}
-                            >
-                                <p>{msg.text}</p>
-                                <p className={`text-xs mt-1 ${msg.sender === 'me' ? 'text-indigo-200' : 'text-slate-400'}`}>
-                                    {msg.time}
-                                </p>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
+                            {/* History Mock */}
+                            <div className="flex justify-start">
+                                <div className="bg-white border border-slate-100 text-slate-700 p-3 rounded-2xl rounded-tl-none max-w-xs shadow-sm">
+                                    {selectedChat.lastMessage}
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
 
-                {/* Input */}
-                <form onSubmit={handleSend} className="p-4 bg-white border-t border-slate-100">
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            value={messageInput}
-                            onChange={(e) => setMessageInput(e.target.value)}
-                            placeholder="Type a message..."
-                            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                        />
-                        <button
-                            type="submit"
-                            className="bg-primary text-white p-3 rounded-xl hover:bg-indigo-700 transition-colors"
-                        >
-                            <Send className="w-5 h-5" />
-                        </button>
+                            {messages.map((msg) => (
+                                <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`p-3 rounded-2xl max-w-xs shadow-sm ${msg.sender === 'me' ? 'bg-primary text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none'}`}>
+                                        {msg.text}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-100 bg-white">
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={messageInput}
+                                    onChange={(e) => setMessageInput(e.target.value)}
+                                    placeholder="Type a message..."
+                                    className="flex-1 px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-slate-900 transition-all"
+                                />
+                                <button type="submit" className="bg-primary text-white p-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                        <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </form>
+                    </>
+                ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-slate-300">
+                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">💬</div>
+                        <p>Select a conversation to start chatting</p>
                     </div>
-                </form>
+                )}
             </div>
         </div>
     );

@@ -1,13 +1,15 @@
 import { Request, Response } from 'express';
 import { query } from '../db';
-// In a real app, use bcrypt for hashing and jsonwebtoken for tokens
-// import bcrypt from 'bcrypt';
-// import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-// Mocking these for now to ensure it runs without extra dependencies if they aren't installed
-const hashPassword = (pwd: string) => pwd; // placeholder
-const comparePassword = (pwd: string, hash: string) => pwd === hash; // placeholder
-const generateToken = (id: string, role: string) => `mock_token_${id}_${role}`;
+import { v4 as uuidv4 } from 'uuid';
+
+const generateToken = (id: string, role: string) => {
+    return jwt.sign({ id, role }, process.env.JWT_SECRET || 'fallback_secret', {
+        expiresIn: '1d'
+    });
+};
 
 export const register = async (req: Request, res: Response) => {
     const { name, email, password, role } = req.body;
@@ -19,15 +21,18 @@ export const register = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        const hashedPassword = hashPassword(password);
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        const newUserId = uuidv4();
 
         // Create user
         const newUser = await query(
-            'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
-            [name, email, hashedPassword, role]
+            'INSERT INTO users (id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role',
+            [newUserId, name, email, hashedPassword, role]
         );
 
-        const user = newUser.rows[0];
+        // SQLite might not return rows on INSERT (depending on our hack), so utilize the ID we generated
+        const user = newUser.rows[0] || { id: newUserId, name, email, role };
 
         // Create wallet
         await query('INSERT INTO wallets (user_id) VALUES ($1)', [user.id]);
@@ -56,7 +61,7 @@ export const login = async (req: Request, res: Response) => {
         }
 
         const user = result.rows[0];
-        const isMatch = comparePassword(password, user.password_hash);
+        const isMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid credentials' });

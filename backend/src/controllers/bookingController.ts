@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { query } from '../db';
+import { v4 as uuidv4 } from 'uuid';
 
 export const createBooking = async (req: Request, res: Response) => {
     const { tutorId, studentId, sessionTime, type, price } = req.body;
@@ -15,11 +16,12 @@ export const createBooking = async (req: Request, res: Response) => {
         }
 
         // 3. Create Booking
+        const bookingId = uuidv4();
         const booking = await query(
-            `INSERT INTO bookings (tutor_id, student_id, session_time, type, price, status, escrow_status)
-       VALUES ($1, $2, $3, $4, $5, 'scheduled', 'held')
+            `INSERT INTO bookings (id, tutor_id, student_id, session_time, type, price, status, escrow_status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'scheduled', 'held')
        RETURNING *`,
-            [tutorId, studentId, sessionTime, type, price]
+            [bookingId, tutorId, studentId, sessionTime, type, price]
         );
 
         // 4. Deduct from Student Wallet
@@ -29,11 +31,17 @@ export const createBooking = async (req: Request, res: Response) => {
         );
 
         // 5. Create Transaction Record
+        const transactionId = uuidv4();
         await query(
-            `INSERT INTO transactions (wallet_id, amount, type, status)
-       VALUES ($1, $2, 'payment', 'completed')`,
-            [studentId, price]
+            `INSERT INTO transactions (id, wallet_id, amount, type, status)
+       VALUES ($1, $2, $3, 'payment', 'completed')`,
+            [transactionId, studentId, price]
         );
+
+        // Fallback for ID in case return is empty
+        if (!booking.rows[0]) {
+            booking.rows[0] = { id: bookingId, tutor_id: tutorId, student_id: studentId, price, status: 'scheduled' };
+        }
 
         res.status(201).json(booking.rows[0]);
     } catch (err: any) {
@@ -88,10 +96,11 @@ export const completeSession = async (req: Request, res: Response) => {
         );
 
         // 4. Create Transaction Record for Tutor
+        const txId = uuidv4();
         await query(
-            `INSERT INTO transactions (wallet_id, amount, type, status)
-       VALUES ($1, $2, 'deposit', 'completed')`,
-            [booking.tutor_id, booking.price]
+            `INSERT INTO transactions (id, wallet_id, amount, type, status)
+       VALUES ($1, $2, $3, 'deposit', 'completed')`,
+            [txId, booking.tutor_id, booking.price]
         );
 
         res.json({ message: 'Session completed and funds released' });

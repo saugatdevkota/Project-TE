@@ -19,3 +19,9 @@
 body {
   color: rgb(var(--foreground-rgb));
 }
+
+@layer base {
+  input, textarea, select {
+    @apply text-slate-900;
+  }
+}

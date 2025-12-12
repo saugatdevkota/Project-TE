@@ -9,6 +9,8 @@ export const metadata: Metadata = {
     description: 'Find verified tutors, book free trials, and learn anything.',
 }
 
+import Navbar from '@/components/Navbar';
+
 export default function RootLayout({
     children,
 }: {
@@ -17,7 +19,8 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={inter.className}>
-                <main className="min-h-screen bg-slate-50">
+                <Navbar />
+                <main className="min-h-screen bg-slate-50 pt-20">
                     {children}
                 </main>
             </body>

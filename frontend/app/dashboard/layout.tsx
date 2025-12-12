@@ -1,15 +1,22 @@
 'use client';
 
 import Sidebar from '@/components/Sidebar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    // In a real app, this would come from auth context
-    const [role] = useState<'student' | 'tutor'>('student');
+    const [role, setRole] = useState<'student' | 'tutor'>('student');
+
+    useEffect(() => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            setRole(user.role as 'student' | 'tutor');
+        }
+    }, []);
 
     return (
         <div className="min-h-screen bg-slate-50">

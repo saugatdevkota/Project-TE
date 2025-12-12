@@ -13,11 +13,33 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // Mock login for now since we don't have the backend running in this environment
-        setTimeout(() => {
-            setLoading(false);
+
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const res = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.message || 'Login failed');
+                setLoading(false);
+                return;
+            }
+
+            // Save token
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+
             router.push('/dashboard');
-        }, 1000);
+        } catch (err) {
+            console.error(err);
+            alert('Something went wrong. Please check if the backend is running.');
+            setLoading(false);
+        }
     };
 
     return (
@@ -38,7 +60,7 @@ export default function LoginPage() {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                            className="w-full px-4 py-3 rounded-lg border border-slate-300 text-slate-900 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                             placeholder="you@example.com"
                             required
                         />
@@ -49,7 +71,7 @@ export default function LoginPage() {
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                            className="w-full px-4 py-3 rounded-lg border border-slate-300 text-slate-900 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                             placeholder="••••••••"
                             required
                         />
