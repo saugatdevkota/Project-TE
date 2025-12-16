@@ -15,8 +15,16 @@ export default function Home() {
 
         // 2. Fetch Tutors for Grid
         api.get('/tutors').then(data => {
-            setTutors(data.slice(0, 8)); // Top 8
-        }).catch(err => console.error("Failed to load tutors", err));
+            if (Array.isArray(data)) {
+                setTutors(data.slice(0, 8)); // Top 8
+            } else {
+                console.warn("API returned invalid tutor data:", data);
+                setTutors([]);
+            }
+        }).catch(err => {
+            console.error("Failed to load tutors", err);
+            setTutors([]);
+        });
     }, []);
 
     // 1. Logged In Student View

@@ -8,6 +8,8 @@ import chatRoutes from './routes/chatRoutes';
 import walletRoutes from './routes/walletRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import contentRoutes from './routes/contentRoutes';
+import offerRoutes from './routes/offerRoutes';
+import pricingRoutes from './routes/pricingRoutes';
 import extraRoutes from './routes/extraRoutes';
 import path from 'path';
 
@@ -34,6 +36,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/upload', uploadRoutes); // Register Upload Route
 app.use('/api/content', contentRoutes);
+app.use('/api/offers', offerRoutes);
+app.use('/api/pricing', pricingRoutes);
 app.use('/api/extra', extraRoutes);
 
 export { app };

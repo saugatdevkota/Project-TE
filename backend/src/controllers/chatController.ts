@@ -52,20 +52,20 @@ export const getMessages = async (req: Request, res: Response) => {
     }
 };
 
-export const saveMessage = async (senderId: string, receiverId: string, text: string, attachments: string[] = []) => {
+export const saveMessage = async (senderId: string, receiverId: string, text: string, attachments: string[] = [], msg_type: string = 'text', metadata: any = null) => {
     try {
         const mid = uuidv4();
         // Convert array to JSON string for SQLite/Postgres compatibility wrapper in localDb
-        // localDb hack for ANY() suggests we might handle arrays as strings. 
-        // For simple storage, JSON.stringify is safest for SQLite TEXT column.
         const attachmentsStr = JSON.stringify(attachments);
+        const metadataStr = metadata ? JSON.stringify(metadata) : null;
 
         const result = await query(
-            `INSERT INTO messages (id, sender_id, receiver_id, text, attachments) 
-       VALUES ($1, $2, $3, $4, $5) 
+            `INSERT INTO messages (id, sender_id, receiver_id, text, attachments, msg_type, metadata, timestamp) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) 
        RETURNING *`,
-            [mid, senderId, receiverId, text, attachmentsStr]
+            [mid, senderId, receiverId, text, attachmentsStr, msg_type, metadataStr]
         );
+        return result.rows[0];
         return result.rows[0] || { id: mid, senderId, receiverId, text, attachments: attachmentsStr, timestamp: new Date().toISOString() };
     } catch (err) {
         console.error('Error saving message:', err);
