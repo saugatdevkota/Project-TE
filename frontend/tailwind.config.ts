@@ -10,20 +10,19 @@ const config: Config = {
         extend: {
             colors: {
                 primary: {
-                    DEFAULT: '#FF5A5F', // Coral (Superprof-like)
-                    50: '#FFF0F1',
-                    100: '#FFE1E2',
-                    200: '#FFC3C5',
-                    300: '#FFA5A8',
-                    400: '#FF878B',
-                    500: '#FF5A5F',
-                    600: '#E64045',
-                    700: '#CC2B30',
-                    800: '#B31D21',
-                    900: '#991215',
+                    DEFAULT: '#4F46E5', // Indigo 600
+                    50: '#EEF2FF',
+                    100: '#E0E7FF',
+                    200: '#C7D2FE',
+                    300: '#A5B4FC',
+                    400: '#818CF8',
+                    500: '#6366F1',
+                    600: '#4F46E5',
+                    700: '#4338CA',
+                    800: '#3730A3',
+                    900: '#312E81',
                 },
-                secondary: '#10B981', // Emerald (unchanged for success states)
-                coral: '#FF5A5F',
+                secondary: '#10B981', // Emerald
             },
             borderRadius: {
                 '4xl': '2rem',

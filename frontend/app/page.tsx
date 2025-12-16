@@ -90,70 +90,45 @@ export default function Home() {
         <div className="min-h-screen bg-[#FAFAFA] font-sans text-slate-800">
 
             {/* HERO SECTION */}
-            <div className="relative pt-24 pb-32 bg-gradient-to-br from-white via-red-50 to-white overflow-hidden">
+            <div className="relative pt-20 pb-24 bg-white overflow-hidden">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
 
-                {/* Background Decor */}
-                <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-50 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3" />
-
-                <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
-
-                    <span className="inline-block py-1 px-4 rounded-full bg-red-100 text-primary font-bold text-sm mb-6 animate-fade-in">
+                    <span className="inline-block py-1 px-3 rounded-full bg-indigo-50 text-indigo-700 font-semibold text-xs mb-6 border border-indigo-100">
                         🚀 The #1 Verified Tutoring Platform
                     </span>
 
-                    <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1]">
-                        Find the perfect <br />
-                        <span className="text-primary relative inline-block">
-                            tutor
-                        </span>
-                        {" "}for you
+                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 mb-6">
+                        Find the perfect <span className="text-primary">tutor</span> for you
                     </h1>
 
-                    <p className="text-xl text-slate-500 mb-12 max-w-2xl mx-auto">
+                    <p className="text-lg text-slate-500 mb-10 max-w-2xl mx-auto">
                         Master any subject with verified experts. From languages to coding, we have the perfect match driven by AI.
                     </p>
 
-                    {/* V2 HERO SEARCH PILL */}
-                    <div className="bg-white rounded-full shadow-xl shadow-slate-200/50 p-2 max-w-4xl mx-auto flex flex-col md:flex-row items-center border border-slate-100 transform hover:scale-[1.01] transition-all duration-300">
-
-                        {/* Subject Input */}
-                        <div className="flex-1 flex items-center px-6 py-3 w-full border-b md:border-b-0 md:border-r border-slate-100">
-                            <Search className="w-6 h-6 text-slate-400 mr-3" />
-                            <div className="text-left w-full">
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Subject</label>
-                                <input type="text" placeholder='Try "Calculus" or "Piano"' className="w-full text-lg outline-none font-medium placeholder:text-slate-300" />
-                            </div>
+                    {/* Clean Search Bar */}
+                    <div className="max-w-3xl mx-auto bg-white p-2 rounded-2xl shadow-xl shadow-indigo-100/50 border border-slate-200 flex flex-col md:flex-row gap-2">
+                        <div className="flex-1 flex items-center px-4 bg-slate-50 rounded-xl">
+                            <Search className="w-5 h-5 text-slate-400 mr-3" />
+                            <input type="text" placeholder="What do you want to learn?" className="w-full py-3 bg-transparent text-slate-900 font-medium placeholder:text-slate-400 outline-none" />
                         </div>
-
-                        {/* Location Input */}
-                        <div className="flex-1 flex items-center px-6 py-3 w-full">
-                            <MapPin className="w-6 h-6 text-slate-400 mr-3" />
-                            <div className="text-left w-full">
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Location</label>
-                                <select className="w-full text-lg outline-none font-medium bg-transparent text-slate-700 cursor-pointer appearance-none">
-                                    <option>Online</option>
-                                    <option>In-Person (coming soon)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Search Button */}
-                        <button className="bg-primary hover:bg-primary-600 text-white rounded-full px-10 py-5 font-bold text-lg shadow-lg hover:shadow-primary/30 transition-all">
+                        <button className="bg-primary hover:bg-primary-700 text-white rounded-xl px-8 py-3 font-bold text-lg transition-colors">
                             Search
                         </button>
                     </div>
 
                     {/* Popular Chips */}
-                    <div className="mt-8 flex justify-center gap-3 flex-wrap">
+                    <div className="mt-8 flex justify-center gap-2 flex-wrap">
                         {['Math', 'English', 'Python', 'Guitar', 'Spanish'].map(tag => (
-                            <span key={tag} className="px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer transition">
+                            <span key={tag} className="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-600 text-sm hover:border-primary hover:text-primary cursor-pointer transition">
                                 {tag}
                             </span>
                         ))}
                     </div>
-
                 </div>
+
+                {/* Simple Background Decor */}
+                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-primary/5 rounded-full blur-3xl text-sm" />
+                <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-50 rounded-full blur-3xl" />
             </div>
 
             {/* TUTOR GRID (FACES) */}

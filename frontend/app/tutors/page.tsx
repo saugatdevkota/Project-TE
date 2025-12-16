@@ -34,10 +34,16 @@ export default function FindTutorsPage() {
                 const res = await fetch(`${API_URL}/tutors`);
                 const data = await res.json();
 
+                if (!Array.isArray(data)) {
+                    console.error("Invalid tutor data:", data);
+                    setTutors([]);
+                    return;
+                }
+
                 // Enhance data for display if needed (e.g. initials, colors)
                 const enhancedData = data.map((t: any) => ({
                     ...t,
-                    initials: t.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
+                    initials: t.name ? t.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : '??',
                     image_color: 'bg-indigo-100', // Default color for now
                     verified: true,
                     reviews: Math.floor(Math.random() * 50) + 5 // Mock reviews count for now until we have real ones
@@ -46,6 +52,7 @@ export default function FindTutorsPage() {
                 setTutors(enhancedData);
             } catch (error) {
                 console.error('Failed to fetch tutors:', error);
+                setTutors([]);
             } finally {
                 setLoading(false);
             }
@@ -166,8 +173,12 @@ export default function FindTutorsPage() {
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            {filteredTutors.map((tutor) => (
-                                <div key={tutor.tutor_id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300 flex flex-col md:flex-row gap-6 group">
+                            {filteredTutors.map((tutor, index) => (
+                                <div
+                                    key={tutor.tutor_id}
+                                    className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300 flex flex-col md:flex-row gap-6 group animate-slide-up"
+                                    style={{ animationDelay: `${index * 0.1}s` }}
+                                >
                                     {/* Avatar */}
                                     <div className="flex-shrink-0 relative mx-auto md:mx-0">
                                         <div className={`w-32 h-32 ${tutor.image_color} rounded-2xl flex items-center justify-center text-3xl font-bold text-slate-700`}>
