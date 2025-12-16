@@ -41,6 +41,16 @@ export const api = {
         return res.json();
     },
 
+    patch: async (endpoint: string, body: any) => {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw await res.json();
+        return res.json();
+    },
+
     upload: async (endpoint: string, file: File) => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         const formData = new FormData();

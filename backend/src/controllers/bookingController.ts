@@ -7,7 +7,6 @@ export const createBooking = async (req: Request, res: Response) => {
 
     try {
         // 1. Check availability (Mock check)
-        // In real app, check against tutor's calendar table
 
         // 2. Check wallet balance
         const wallet = await query('SELECT balance FROM wallets WHERE user_id = $1', [studentId]);
@@ -15,22 +14,30 @@ export const createBooking = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Insufficient funds' });
         }
 
-        // 3. Create Booking
+        // 3. Create Booking (Requested State)
         const bookingId = uuidv4();
         const booking = await query(
             `INSERT INTO bookings (id, tutor_id, student_id, session_time, type, price, status, escrow_status)
-       VALUES ($1, $2, $3, $4, $5, $6, 'scheduled', 'held')
+       VALUES ($1, $2, $3, $4, $5, $6, 'requested', 'held')
        RETURNING *`,
             [bookingId, tutorId, studentId, sessionTime, type, price]
         );
 
-        // 4. Deduct from Student Wallet
+        // 4. Create Escrow Record
+        const escrowId = uuidv4();
+        await query(
+            `INSERT INTO escrow_accounts (id, booking_id, amount, status)
+             VALUES ($1, $2, $3, 'held')`,
+            [escrowId, bookingId, price]
+        );
+
+        // 5. Deduct from Student Wallet
         await query(
             `UPDATE wallets SET balance = balance - $1 WHERE user_id = $2`,
             [price, studentId]
         );
 
-        // 5. Create Transaction Record
+        // 6. Create Transaction Record
         const transactionId = uuidv4();
         await query(
             `INSERT INTO transactions (id, wallet_id, amount, type, status)
@@ -38,19 +45,56 @@ export const createBooking = async (req: Request, res: Response) => {
             [transactionId, studentId, price]
         );
 
-        // Fallback for ID in case return is empty
-        if (!booking.rows[0]) {
-            booking.rows[0] = { id: bookingId, tutor_id: tutorId, student_id: studentId, price, status: 'scheduled' };
-        }
+        res.status(201).json(booking.rows[0] || { id: bookingId, status: 'requested' });
+    } catch (err: any) {
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+};
 
-        res.status(201).json(booking.rows[0]);
+export const respondToBooking = async (req: Request, res: Response) => {
+    const { bookingId } = req.params;
+    const { action } = req.body; // 'accept' or 'reject'
+    const { id: userId } = req.user as { id: string };
+
+    try {
+        const bookingRes = await query('SELECT * FROM bookings WHERE id = $1', [bookingId]);
+        const booking = bookingRes.rows[0];
+
+        if (!booking) return res.status(404).json({ message: 'Booking not found' });
+        if (booking.tutor_id !== userId) return res.status(403).json({ message: 'Not authorized' });
+        if (booking.status !== 'requested') return res.status(400).json({ message: 'Invalid booking state' });
+
+        if (action === 'accept') {
+            await query("UPDATE bookings SET status = 'scheduled' WHERE id = $1", [bookingId]);
+            res.json({ message: 'Booking accepted' });
+        } else if (action === 'reject') {
+            // Refund Logic
+            await query("UPDATE bookings SET status = 'rejected', escrow_status = 'refunded' WHERE id = $1", [bookingId]);
+            await query("UPDATE escrow_accounts SET status = 'refunded' WHERE booking_id = $1", [bookingId]);
+
+            // Return funds to student
+            await query("UPDATE wallets SET balance = balance + $1 WHERE user_id = $2", [booking.price, booking.student_id]);
+
+            // Transaction Record
+            const txId = uuidv4();
+            await query(
+                `INSERT INTO transactions (id, wallet_id, amount, type, status)
+             VALUES ($1, $2, $3, 'refund', 'completed')`,
+                [txId, booking.student_id, booking.price]
+            );
+
+            res.json({ message: 'Booking rejected and funds refunded' });
+        } else {
+            res.status(400).json({ message: 'Invalid action' });
+        }
     } catch (err: any) {
         res.status(500).json({ message: 'Server error', error: err.message });
     }
 };
 
 export const getMyBookings = async (req: Request, res: Response) => {
-    const { userId, role } = req.query; // In real app, get from req.user
+    // Use req.user from authMiddleware
+    const { id: userId, role } = req.user as { id: string, role: string };
 
     try {
         const column = role === 'tutor' ? 'tutor_id' : 'student_id';
@@ -75,7 +119,6 @@ export const completeSession = async (req: Request, res: Response) => {
     const { bookingId } = req.params;
 
     try {
-        // 1. Get booking
         const bookingRes = await query('SELECT * FROM bookings WHERE id = $1', [bookingId]);
         const booking = bookingRes.rows[0];
 
@@ -83,27 +126,53 @@ export const completeSession = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Invalid booking status' });
         }
 
-        // 2. Update Booking Status
+        // Update status only. Funds remain in Escrow until explicit release or auto-timer.
         await query(
-            `UPDATE bookings SET status = 'completed', escrow_status = 'released' WHERE id = $1`,
+            `UPDATE bookings SET status = 'completed' WHERE id = $1`,
             [bookingId]
         );
 
-        // 3. Release Funds to Tutor (Platform fee logic would go here)
+        // Set auto-release date in escrow (24h from now)
+        const releaseDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
         await query(
-            `UPDATE wallets SET balance = balance + $1 WHERE user_id = $2`,
-            [booking.price, booking.tutor_id]
+            `UPDATE escrow_accounts SET release_date = $1 WHERE booking_id = $2`,
+            [releaseDate, bookingId]
         );
 
-        // 4. Create Transaction Record for Tutor
+        res.json({ message: 'Session completed. Funds will be released in 24 hours.' });
+    } catch (err: any) {
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+};
+
+export const releaseFunds = async (req: Request, res: Response) => {
+    const { bookingId } = req.params;
+    // In real app: check if caller is admin OR if 24h passed
+
+    try {
+        const bookingRes = await query('SELECT * FROM bookings WHERE id = $1', [bookingId]);
+        const booking = bookingRes.rows[0];
+
+        if (!booking || booking.escrow_status !== 'held') {
+            return res.status(400).json({ message: 'Funds already released or not held' });
+        }
+
+        await query("UPDATE bookings SET escrow_status = 'released' WHERE id = $1", [bookingId]);
+        await query("UPDATE escrow_accounts SET status = 'released' WHERE booking_id = $1", [bookingId]);
+
+        // Release to Tutor
+        await query("UPDATE wallets SET balance = balance + $1 WHERE user_id = $2", [booking.price, booking.tutor_id]);
+
+        // Log TX
         const txId = uuidv4();
         await query(
             `INSERT INTO transactions (id, wallet_id, amount, type, status)
-       VALUES ($1, $2, $3, 'deposit', 'completed')`,
+             VALUES ($1, $2, $3, 'deposit', 'completed')`,
             [txId, booking.tutor_id, booking.price]
         );
 
-        res.json({ message: 'Session completed and funds released' });
+        res.json({ message: 'Funds released successfully' });
+
     } catch (err: any) {
         res.status(500).json({ message: 'Server error', error: err.message });
     }

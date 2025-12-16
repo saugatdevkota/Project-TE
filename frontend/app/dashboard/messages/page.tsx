@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { api } from '@/lib/api';
+import { Paperclip, Phone, Calendar, Send, Video } from 'lucide-react';
+import Link from 'next/link';
 
 export default function MessagesPage() {
     const [selectedChat, setSelectedChat] = useState<any>(null);
@@ -13,15 +16,42 @@ export default function MessagesPage() {
         { id: 2, name: "Platform Support", lastMessage: "How can we help?", time: "Yesterday" }
     ];
 
-    const handleSendMessage = (e: React.FormEvent) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploading, setUploading] = useState(false);
+
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!messageInput.trim()) return;
 
         // Optimistic update
-        setMessages([...messages, { id: Date.now(), text: messageInput, sender: 'me', time: 'Now' }]);
+        const newMsg = { id: Date.now(), text: messageInput, sender: 'me', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+        setMessages([...messages, newMsg]);
         setMessageInput('');
 
-        // In real app: POST /api/chat/send
+        // Mock Socket Emit
+        // socket.emit('send_message', { text: messageInput, ... })
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.[0]) return;
+        setUploading(true);
+        try {
+            const res = await api.upload('/upload', e.target.files[0]);
+            // Send message with attachment
+            // In real app: socket.emit('send_message', { text: 'Sent a file', attachments: [res.url] })
+            setMessages([...messages, {
+                id: Date.now(),
+                text: `Sent a file: ${res.filename}`,
+                sender: 'me',
+                time: "Just now",
+                attachments: [res.url]
+            }]);
+        } catch (error) {
+            console.error(error);
+            alert('Upload failed');
+        } finally {
+            setUploading(false);
+        }
     };
 
     return (
@@ -52,9 +82,28 @@ export default function MessagesPage() {
             <div className="w-2/3 flex flex-col bg-white">
                 {selectedChat ? (
                     <>
-                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white z-10">
-                            <h3 className="font-bold text-slate-900">{selectedChat.name}</h3>
-                            <button className="text-slate-400 hover:text-primary">•••</button>
+                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white z-10 shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-primary font-bold">
+                                    {selectedChat.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900 leading-tight">{selectedChat.name}</h3>
+                                    <span className="text-xs text-green-500 font-bold flex items-center gap-1">● Online</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button className="p-2 text-slate-400 hover:text-primary hover:bg-slate-50 rounded-full transition-colors" title="Start Video Call">
+                                    <Video className="w-5 h-5" />
+                                </button>
+                                <button className="p-2 text-slate-400 hover:text-primary hover:bg-slate-50 rounded-full transition-colors" title="Voice Call">
+                                    <Phone className="w-5 h-5" />
+                                </button>
+                                <Link href={`/book/${selectedChat.id}`} className="flex items-center gap-2 bg-indigo-50 text-primary px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition-colors text-sm ml-2">
+                                    <Calendar className="w-4 h-4" />
+                                    Book Session
+                                </Link>
+                            </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
@@ -69,13 +118,35 @@ export default function MessagesPage() {
                                 <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`p-3 rounded-2xl max-w-xs shadow-sm ${msg.sender === 'me' ? 'bg-primary text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none'}`}>
                                         {msg.text}
+                                        {msg.attachments && msg.attachments.map((url: string, idx: number) => (
+                                            <div key={idx} className="mt-2 p-2 bg-black/10 rounded-lg">
+                                                <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs underline flex items-center gap-1">
+                                                    <Paperclip className="w-3 h-3" /> Attachment {idx + 1}
+                                                </a>
+                                            </div>
+                                        ))}
                                     </div>
+                                    <span className="text-[10px] text-slate-400 mt-1 px-1">{msg.time}</span>
                                 </div>
                             ))}
                         </div>
 
                         <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-100 bg-white">
                             <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-3 text-slate-400 hover:text-primary transition-colors"
+                                    title="Attach File"
+                                >
+                                    <Paperclip className="w-5 h-5" />
+                                </button>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    onChange={handleFileUpload}
+                                />
                                 <input
                                     type="text"
                                     value={messageInput}
@@ -83,10 +154,8 @@ export default function MessagesPage() {
                                     placeholder="Type a message..."
                                     className="flex-1 px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-slate-900 transition-all"
                                 />
-                                <button type="submit" className="bg-primary text-white p-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                                        <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
-                                    </svg>
+                                <button type="submit" disabled={uploading} className="bg-primary text-white p-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg disabled:opacity-50">
+                                    <Send className="w-5 h-5" />
                                 </button>
                             </div>
                         </form>

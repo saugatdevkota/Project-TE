@@ -16,6 +16,7 @@ interface Tutor {
     verified?: boolean;
     image_color?: string;
     reviews?: number;
+    is_premium?: boolean;
 }
 
 export default function FindTutorsPage() {
@@ -54,14 +55,28 @@ export default function FindTutorsPage() {
     }, []);
 
     // Filter Logic
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortOption, setSortOption] = useState('rating'); // rating, price-asc, price-desc
+
+    // ... (useEffect remains same) ...
+    // Note: In a real app, filtering/sorting might be server-side. For now client-side is fine for MVP.
+
+    // Filter Logic
     const filteredTutors = tutors.filter(tutor => {
         const matchesPrice = tutor.hourly_rate <= priceRange;
-        // Check if selected subject is in the tutor's subjects array (which might be a string in SQLite if not parsed correctly, but we parsed it in seed)
-        // Adjusting logic: logic needs to handle if subjects is array or string. 
-        // In seed we did JSON.stringify([subject]). Backend sends it back. 
-        // Let's assume it handles "All Subjects" or specific match.
         const matchesSubject = selectedSubject === 'All Subjects' || (tutor.subjects && tutor.subjects.includes(selectedSubject));
-        return matchesPrice && matchesSubject;
+
+        const term = searchTerm.toLowerCase();
+        const matchesSearch = tutor.name.toLowerCase().includes(term) ||
+            (tutor.subjects && tutor.subjects.join(' ').toLowerCase().includes(term)) ||
+            tutor.bio.toLowerCase().includes(term);
+
+        return matchesPrice && matchesSubject && matchesSearch;
+    }).sort((a, b) => {
+        if (sortOption === 'price-asc') return a.hourly_rate - b.hourly_rate;
+        if (sortOption === 'price-desc') return b.hourly_rate - a.hourly_rate;
+        if (sortOption === 'rating') return b.rating - a.rating;
+        return 0;
     });
 
     return (
@@ -79,7 +94,20 @@ export default function FindTutorsPage() {
                                 type="text"
                                 placeholder="What do you want to learn? (e.g. 'Math', 'Piano')"
                                 className="w-full pl-6 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none text-slate-900"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                             />
+                        </div>
+                        <div className="relative min-w-[200px]">
+                            <select
+                                value={sortOption}
+                                onChange={(e) => setSortOption(e.target.value)}
+                                className="w-full h-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-primary outline-none text-slate-900 bg-white"
+                            >
+                                <option value="rating">Top Rated</option>
+                                <option value="price-asc">Price: Low to High</option>
+                                <option value="price-desc">Price: High to Low</option>
+                            </select>
                         </div>
                         <button className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg">
                             Search
@@ -149,6 +177,13 @@ export default function FindTutorsPage() {
                                             <div className="absolute -bottom-3 -right-3 bg-white p-1 rounded-full shadow-sm">
                                                 <div className="bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                                                     <span>✓</span> Verified
+                                                </div>
+                                            </div>
+                                        )}
+                                        {tutor.is_premium && (
+                                            <div className="absolute -top-3 -right-3 bg-white p-1 rounded-full shadow-sm z-10">
+                                                <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg">
+                                                    <span>👑</span> PREMIUM
                                                 </div>
                                             </div>
                                         )}

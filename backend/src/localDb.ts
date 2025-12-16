@@ -123,6 +123,17 @@ const initDb = () => {
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        // Auth Sessions (V2)
+        db.run(`CREATE TABLE IF NOT EXISTS auth_sessions (
+            id TEXT PRIMARY KEY,
+            user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            refresh_token TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            ip_address TEXT,
+            user_agent TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`);
+
         // Wallets
         db.run(`CREATE TABLE IF NOT EXISTS wallets (
             user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -140,19 +151,50 @@ const initDb = () => {
             verification_score INTEGER DEFAULT 0,
             years_experience INTEGER,
             qualification_docs TEXT, -- JSON string
-            status TEXT DEFAULT 'pending' CHECK (status IN ('verified', 'pending', 'rejected'))
+            status TEXT DEFAULT 'pending' CHECK (status IN ('verified', 'pending', 'rejected')),
+            is_premium BOOLEAN DEFAULT 0
         )`);
 
-        // Bookings
+        // Migration for existing tables
+        db.run("ALTER TABLE tutor_profiles ADD COLUMN is_premium BOOLEAN DEFAULT 0", (err) => {
+            // Ignore error if column exists
+        });
+
+        // Bookings (V2 - Finite State Machine)
         db.run(`CREATE TABLE IF NOT EXISTS bookings (
              id TEXT PRIMARY KEY,
              tutor_id TEXT REFERENCES users(id),
              student_id TEXT REFERENCES users(id),
              type TEXT,
-             status TEXT DEFAULT 'scheduled',
+             status TEXT DEFAULT 'scheduled', -- requested, accepted, cancelled, etc.
              session_time TEXT,
              price REAL,
-             escrow_status TEXT DEFAULT 'held'
+             escrow_status TEXT DEFAULT 'held',
+             created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Escrow Accounts (V2)
+        db.run(`CREATE TABLE IF NOT EXISTS escrow_accounts (
+            id TEXT PRIMARY KEY,
+            booking_id TEXT REFERENCES bookings(id) ON DELETE CASCADE,
+            amount REAL NOT NULL,
+            status TEXT DEFAULT 'held',
+            release_condition TEXT,
+            release_date TEXT,
+            dispute_until TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Offers (V2)
+        db.run(`CREATE TABLE IF NOT EXISTS offers (
+            id TEXT PRIMARY KEY,
+            booking_id TEXT REFERENCES bookings(id),
+            sender_id TEXT REFERENCES users(id),
+            receiver_id TEXT REFERENCES users(id),
+            amount REAL NOT NULL,
+            status TEXT DEFAULT 'pending',
+            terms TEXT, -- JSON string
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )`);
 
         // Transactions
@@ -165,16 +207,26 @@ const initDb = () => {
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        // Messages
+        // Messages (V2 - Smart Chat)
         db.run(`CREATE TABLE IF NOT EXISTS messages (
             id TEXT PRIMARY KEY,
             sender_id TEXT REFERENCES users(id),
             receiver_id TEXT REFERENCES users(id),
             text TEXT,
+            attachments TEXT, -- JSON string array
+            msg_type TEXT DEFAULT 'text',
+            metadata TEXT, -- JSON string
             timestamp TEXT DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        // Content Hub
+        // Migration for new fields in messages
+        db.run("ALTER TABLE messages ADD COLUMN msg_type TEXT DEFAULT 'text'", (err) => { });
+        db.run("ALTER TABLE messages ADD COLUMN metadata TEXT", (err) => { });
+
+        // Migration
+        db.run("ALTER TABLE messages ADD COLUMN attachments TEXT", (err) => { });
+
+        // Content Hub (V1 + V2)
         db.run(`CREATE TABLE IF NOT EXISTS content_hub (
             id TEXT PRIMARY KEY,
             tutor_id TEXT REFERENCES users(id) ON DELETE CASCADE,
@@ -183,8 +235,41 @@ const initDb = () => {
             description TEXT,
             file_url TEXT,
             price REAL DEFAULT 0,
-            visibility TEXT DEFAULT 'public'
+            visibility TEXT DEFAULT 'public',
+            subject TEXT,
+            grade_level TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )`);
+
+        // Content Collections (V2)
+        db.run(`CREATE TABLE IF NOT EXISTS content_collections (
+            id TEXT PRIMARY KEY,
+            tutor_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            description TEXT,
+            price REAL,
+            thumbnail_url TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Pricing Snapshots (V2)
+        db.run(`CREATE TABLE IF NOT EXISTS pricing_snapshots (
+            id TEXT PRIMARY KEY,
+            tutor_id TEXT REFERENCES users(id),
+            subject TEXT,
+            market_rate_avg REAL,
+            demand_score REAL,
+            suggested_price_min REAL,
+            suggested_price_max REAL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Migration for existing tables
+        db.run("ALTER TABLE content_hub ADD COLUMN subject TEXT", (err) => { });
+        db.run("ALTER TABLE content_hub ADD COLUMN grade_level TEXT", (err) => { });
+        db.run("ALTER TABLE content_hub ADD COLUMN created_at TEXT DEFAULT CURRENT_TIMESTAMP", (err) => { });
+        // db.run("ALTER TABLE content_hub ADD COLUMN price REAL DEFAULT 0", (err) => {}); // Already in create but maybe missing in old db
+        // db.run("ALTER TABLE content_hub ADD COLUMN visibility TEXT DEFAULT 'public'", (err) => {});
 
         // Reviews
         db.run(`CREATE TABLE IF NOT EXISTS reviews (

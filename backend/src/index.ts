@@ -25,10 +25,10 @@ io.on('connection', (socket) => {
     });
 
     socket.on('send_message', async (data) => {
-        const { senderId, receiverId, text } = data;
+        const { senderId, receiverId, text, attachments } = data;
 
         // Save to DB
-        const savedMessage = await saveMessage(senderId, receiverId, text);
+        const savedMessage = await saveMessage(senderId, receiverId, text, attachments);
 
         if (savedMessage) {
             // Emit to receiver

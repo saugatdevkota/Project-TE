@@ -61,6 +61,27 @@ export const verifyTutor = async (req: Request, res: Response) => {
     }
 };
 
+export const togglePremium = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        // Toggle the is_premium status (in real app, this would check payment)
+        const result = await query(
+            `UPDATE tutor_profiles 
+             SET is_premium = NOT COALESCE(is_premium, FALSE) 
+             WHERE tutor_id = $1 
+             RETURNING *`,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Tutor not found' });
+        }
+        res.json(result.rows[0]);
+    } catch (err: any) {
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+};
+
 export const uploadVerificationDocs = async (req: Request, res: Response) => {
     const { id } = req.params;
     // ... rest of existing function
@@ -104,6 +125,9 @@ export const getAllTutors = async (req: Request, res: Response) => {
         params.push(maxPrice);
         paramCount++;
     }
+
+    // Sort by Premium first, then Verification Score
+    sql += ` ORDER BY t.is_premium DESC, t.verification_score DESC`;
 
     try {
         const result = await query(sql, params);

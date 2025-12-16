@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '../../../lib/api';
+import { api } from '@/lib/api';
+import { Camera, Loader2 } from 'lucide-react';
 
 export default function ProfilePage() {
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [photoLoading, setPhotoLoading] = useState(false);
 
     useEffect(() => {
         const userStr = localStorage.getItem('user');
@@ -14,6 +16,38 @@ export default function ProfilePage() {
         }
         setLoading(false);
     }, []);
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || !e.target.files[0]) return;
+        const file = e.target.files[0];
+
+        try {
+            setPhotoLoading(true);
+            // 1. Upload File
+            const uploadRes = await api.upload('/upload', file);
+
+            // 2. Update User Profile in DB
+            const updatedUser = await api.patch('/auth/profile', {
+                profile_photo: uploadRes.url
+            });
+
+            // 3. Update Local State & Storage
+            const newUser = { ...user, profile_photo: uploadRes.url };
+            setUser(newUser);
+            localStorage.setItem('user', JSON.stringify(newUser));
+
+            // Optional: Trigger a custom event if Navbar needs to re-render immediately and doesn't listen to storage
+            // For now, simpler approach is fine. Reloading page or just navigating usually updates navbar in Next.js if logic is in useEffect?
+            // Navbar useEffect runs on mount. So we might need to dispatch event.
+            window.dispatchEvent(new Event('storage')); // Mock storage event for same tab?
+
+        } catch (error) {
+            console.error('Upload failed', error);
+            alert('Failed to update profile photo');
+        } finally {
+            setPhotoLoading(false);
+        }
+    };
 
     if (loading) return null;
 
@@ -32,6 +66,39 @@ export default function ProfilePage() {
                 </p>
             </div>
 
+            {/* Profile Header Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 mb-6 flex items-center gap-6">
+                <div className="relative group">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center border-4 border-white shadow-md">
+                        {user.profile_photo ? (
+                            <img src={user.profile_photo} alt={user.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-3xl font-bold text-primary">{user.name.charAt(0)}</span>
+                        )}
+                        {photoLoading && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <Loader2 className="w-8 h-8 text-white animate-spin" />
+                            </div>
+                        )}
+                    </div>
+                    <label className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full cursor-pointer hover:bg-indigo-700 shadow-lg transition-transform hover:scale-110">
+                        <Camera className="w-4 h-4" />
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handlePhotoUpload}
+                            disabled={photoLoading}
+                        />
+                    </label>
+                </div>
+                <div>
+                    <h2 className="text-xl font-bold text-slate-900">{user.name}</h2>
+                    <p className="text-slate-500 capitalize">{user.role}</p>
+                    <p className="text-sm text-slate-400 mt-1">{user.email}</p>
+                </div>
+            </div>
+
             {user.role === 'tutor' ? (
                 <TutorProfileForm user={user} />
             ) : (
@@ -42,19 +109,11 @@ export default function ProfilePage() {
 }
 
 function StudentProfileForm({ user }: { user: any }) {
-    // For MVP, Student profile is read-only or simple layout
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 space-y-6">
-            <div className="flex items-center gap-6 mb-8">
-                <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center text-4xl font-bold text-primary">
-                    {user.name.charAt(0)}
-                </div>
-                <div>
-                    <h2 className="text-xl font-bold text-slate-900">{user.name}</h2>
-                    <p className="text-slate-500 capitalize">{user.role}</p>
-                </div>
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                <h3 className="font-bold text-slate-900">Personal Information</h3>
             </div>
-
             <div className="grid md:grid-cols-2 gap-6">
                 <div>
                     <label className="block text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Full Name</label>
@@ -70,18 +129,11 @@ function StudentProfileForm({ user }: { user: any }) {
                 </div>
             </div>
 
-            <div className="pt-6 border-t border-slate-100">
-                <h3 className="font-bold text-slate-900 mb-4">Learning Preferences</h3>
-                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                    <p className="text-sm text-indigo-800">
-                        <strong>Tip:</strong> Your learning stats and booking history are available on your <a href="/dashboard/student" className="underline font-bold">Dashboard</a>.
-                    </p>
+            <div className="pt-6">
+                <h3 className="font-bold text-slate-900 mb-4">Account</h3>
+                <div className="flex justify-start gap-3 opacity-50 cursor-not-allowed">
+                    <button className="bg-white border border-slate-300 text-slate-700 px-6 py-2 rounded-lg font-bold">Change Password</button>
                 </div>
-            </div>
-
-            <div className="flex justify-end gap-3 opacity-50 cursor-not-allowed" title="Account management coming soon">
-                <button className="text-slate-500 hover:text-slate-900 font-bold px-4 py-2">Change Password</button>
-                <button className="bg-white border border-slate-300 text-slate-700 px-6 py-2 rounded-lg font-bold">Edit Details</button>
             </div>
         </div>
     );
@@ -93,6 +145,7 @@ function TutorProfileForm({ user }: { user: any }) {
     const [rate, setRate] = useState('');
     const [experience, setExperience] = useState('');
     const [loading, setLoading] = useState(true);
+    const [isPremium, setIsPremium] = useState(false);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -102,6 +155,7 @@ function TutorProfileForm({ user }: { user: any }) {
                 setSubjects(Array.isArray(data.subjects) ? data.subjects.join(', ') : (data.subjects || ''));
                 setRate(data.hourly_rate || '');
                 setExperience(data.years_experience || '');
+                setIsPremium(data.is_premium || false);
             } catch (error) {
                 console.error('Failed to fetch profile', error);
             } finally {
@@ -110,6 +164,17 @@ function TutorProfileForm({ user }: { user: any }) {
         };
         fetchProfile();
     }, [user.id]);
+
+    const handlePremiumToggle = async () => {
+        try {
+            const res = await api.post(`/tutors/${user.id}/premium`, {});
+            setIsPremium(res.is_premium);
+            alert(res.is_premium ? 'Congratulations! You are now a Premium Tutor.' : 'You are no longer a Premium Tutor.');
+        } catch (error) {
+            console.log(error);
+            alert('Failed to update premium status');
+        }
+    };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -134,6 +199,32 @@ function TutorProfileForm({ user }: { user: any }) {
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8">
+            <h3 className="font-bold text-slate-900 mb-6 pb-4 border-b border-slate-100">Teaching Profile</h3>
+
+            {/* Premium Card */}
+            <div className={`p-6 rounded-xl border mb-8 flex flex-col md:flex-row items-center justify-between gap-4 transition-all ${isPremium ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-sm ${isPremium ? 'bg-amber-100 text-amber-600' : 'bg-slate-200 text-slate-400'}`}>
+                        {isPremium ? '👑' : '☆'}
+                    </div>
+                    <div>
+                        <h4 className={`font-bold ${isPremium ? 'text-amber-900' : 'text-slate-900'}`}>
+                            {isPremium ? 'You are a Premium Tutor!' : 'Go Premium & Get More Students'}
+                        </h4>
+                        <p className={`text-sm ${isPremium ? 'text-amber-700' : 'text-slate-500'}`}>
+                            {isPremium ? 'Your profile is boosted to the top of search results.' : 'Premium tutors get 3x more views and bookings. $19/mo.'}
+                        </p>
+                    </div>
+                </div>
+                <button
+                    onClick={handlePremiumToggle}
+                    type="button"
+                    className={`px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg ${isPremium ? 'bg-white border border-amber-200 text-amber-700 hover:bg-amber-50' : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white hover:from-amber-500 hover:to-orange-600'}`}
+                >
+                    {isPremium ? 'Manage Subscription' : 'Upgrade Now'}
+                </button>
+            </div>
+
             <form onSubmit={handleSave} className="space-y-6">
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">About You</label>

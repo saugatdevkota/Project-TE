@@ -1,5 +1,9 @@
 # Tutor Everywhere
 
+
+> [!NOTE]  
+> For detailed documentation on features, architecture, and API reference, please see [PROJECT_DOCS.md](PROJECT_DOCS.md).
+
 ## Deployment
 
 This project is containerized using Docker and Docker Compose.

@@ -19,6 +19,15 @@ export default function AdminLogin() {
         // Mock Admin Auth for MVP
         if (email === 'admin@te.com' && password === 'admin123') {
             localStorage.setItem('adminToken', 'mock-admin-token');
+            // FIX: Set user object so Navbar detects login
+            const adminUser = {
+                name: 'Administrator',
+                role: 'admin',
+                email: 'admin@te.com'
+            };
+            localStorage.setItem('user', JSON.stringify(adminUser));
+            window.dispatchEvent(new Event('auth-change'));
+
             // Use hard navigation to ensure clean state
             window.location.href = '/admin/dashboard';
         } else {
