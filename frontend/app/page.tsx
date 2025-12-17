@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Search, MapPin, Star } from 'lucide-react';
 import { api } from '@/lib/api';
+import TutorHome from '@/components/landing/TutorHome';
+import StudentHome from '@/components/landing/StudentHome';
 
 export default function Home() {
     const [tutors, setTutors] = useState<any[]>([]);
@@ -29,60 +31,12 @@ export default function Home() {
 
     // 1. Logged In Student View
     if (user && user.role === 'student') {
-        return (
-            <div className="min-h-screen bg-gray-50 pt-10">
-                <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-                    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-4">Welcome back, {user.name}! 👋</h1>
-                        <p className="text-gray-600 mb-8">Ready to continue learning?</p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <Link href="/dashboard/student" className="block p-6 bg-indigo-50 rounded-2xl border border-indigo-100 hover:shadow-md transition group">
-                                <h3 className="font-bold text-lg text-indigo-700 mb-2 group-hover:text-indigo-800">Find a Tutor</h3>
-                                <p className="text-sm text-gray-600">Browse verified tutors for your subjects.</p>
-                            </Link>
-                            <Link href="/dashboard/bookings" className="block p-6 bg-emerald-50 rounded-2xl border border-emerald-100 hover:shadow-md transition group">
-                                <h3 className="font-bold text-lg text-emerald-700 mb-2 group-hover:text-emerald-800">Upcoming Sessions</h3>
-                                <p className="text-sm text-gray-600">Check your schedule and join calls.</p>
-                            </Link>
-                            <Link href="/dashboard/messages" className="block p-6 bg-purple-50 rounded-2xl border border-purple-100 hover:shadow-md transition group">
-                                <h3 className="font-bold text-lg text-purple-700 mb-2 group-hover:text-purple-800">Messages</h3>
-                                <p className="text-sm text-gray-600">Chat with your tutors.</p>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+        return <StudentHome user={user} tutors={tutors} />;
     }
 
     // 2. Logged In Tutor View
     if (user && user.role === 'tutor') {
-        return (
-            <div className="min-h-screen bg-gray-50 pt-10">
-                <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-                    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-4">Hello, {user.name}! 🎓</h1>
-                        <p className="text-gray-600 mb-8">Manage your tutoring business.</p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <Link href="/dashboard/tutor" className="block p-6 bg-indigo-50 rounded-2xl border border-indigo-100 hover:shadow-md transition">
-                                <h3 className="font-bold text-lg text-indigo-700 mb-2">Dashboard</h3>
-                                <p className="text-sm text-gray-600">View your stats and earnings.</p>
-                            </Link>
-                            <Link href="/dashboard/bookings" className="block p-6 bg-emerald-50 rounded-2xl border border-emerald-100 hover:shadow-md transition">
-                                <h3 className="font-bold text-lg text-emerald-700 mb-2">My Sessions</h3>
-                                <p className="text-sm text-gray-600">Manage your upcoming classes.</p>
-                            </Link>
-                            <Link href="/dashboard/tutor/content" className="block p-6 bg-rose-50 rounded-2xl border border-rose-100 hover:shadow-md transition">
-                                <h3 className="font-bold text-lg text-rose-700 mb-2">Content Hub</h3>
-                                <p className="text-sm text-gray-600">Upload courses and resources.</p>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+        return <TutorHome user={user} />;
     }
 
     // 3. Marketing Home (Guest)

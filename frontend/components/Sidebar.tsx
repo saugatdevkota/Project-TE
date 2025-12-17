@@ -55,8 +55,8 @@ export default function Sidebar({ role }: { role: 'student' | 'tutor' }) {
                             key={link.href}
                             href={link.href}
                             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                    ? 'bg-indigo-50 text-primary font-medium'
-                                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                ? 'bg-indigo-50 text-primary font-medium'
+                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                                 }`}
                         >
                             <Icon className="w-5 h-5" />
@@ -67,7 +67,16 @@ export default function Sidebar({ role }: { role: 'student' | 'tutor' }) {
             </nav>
 
             <div className="p-4 border-t border-slate-100">
-                <button className="flex items-center gap-3 px-4 py-3 w-full text-left text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors">
+                <button
+                    onClick={() => {
+                        localStorage.removeItem('user');
+                        localStorage.removeItem('token');
+                        window.dispatchEvent(new Event('auth-change'));
+                        // Optional: Redirect will be handled by auth-change listener or we can force it
+                        window.location.href = '/login';
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 w-full text-left text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                >
                     <LogOut className="w-5 h-5" />
                     Sign Out
                 </button>

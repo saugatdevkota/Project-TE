@@ -43,6 +43,13 @@ export default function Navbar() {
         setMobileMenuOpen(false);
     }, [user]);
 
+    const handleLogout = () => {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        window.dispatchEvent(new Event("auth-change"));
+        router.push("/login");
+    };
+
     return (
         <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 transition-all duration-300">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
